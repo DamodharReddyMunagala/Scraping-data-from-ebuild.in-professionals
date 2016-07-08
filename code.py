@@ -33,26 +33,29 @@ Employees = []
 #firm_project_image_list = []                                ##Not needed after modifying the code
 firm_project_image_title_list = []
 firm_project_image_url_list = []
+firm_project_image_url_list1 = []
 Image_Gallery_TITLES_list = []
 Image_Gallery_URLS_list = []
+project_link_list = []
+project_title_list = []
 
 #For ProjectImageGallery
 project_image_gallery_list = []
 
 
 url = "http://ebuild.in/professionals"
-
+"""
 req = requests.get(url)
 response = open('ebuild.html', 'wb')
 for chunk in req.iter_content(100000):
     response.write(chunk)
 response.close()
-
+"""
 soup = BeautifulSoup(open('ebuild.html'), 'lxml')
 for data in (soup.find('div',{'id' : 'profInner'}).findAll('a', {'target' : '_blank'})):
     firm_link.append('http://ebuild.in/' + data.attrs['href'])
      
-    """First for loop wil get the details of the Company, Firm, Firm_role, City."""
+    """First for loop we will get the details of the Company, Firm, Firm_role, City."""
     
     for item in data.find('div', {'id' : 'arcds'}):
         company_name.append(item.h3.text.replace('.', ''))
@@ -129,15 +132,14 @@ for link in firm_link:
 def firm_details(firm_link):
     
     try:
-        BeautifulSoup(open(firm_link.replace('.','-').replace('/','') + '.html'), 'lxml')
+        soup = BeautifulSoup(open(firm_link.replace('.','-').replace('/','') + '.html'), 'lxml')
     except FileNotFoundError as e:
         req = requests.get(firm_link)
         response = open(firm_link.replace('.','-').replace('/','') + '.html', 'wb')
         for chunk in req.iter_content(100000):
             response.write(chunk)
         response.close()
-    
-    soup = BeautifulSoup(open(firm_link.replace('.','-').replace('/','') + '.html'), 'lxml')
+        soup = BeautifulSoup(open(firm_link.replace('.','-').replace('/','') + '.html'), 'lxml')
     
     firm_name = []
     firm_image_url = []
@@ -285,13 +287,14 @@ def firm_details(firm_link):
 def firm_project_details(firm_project_link):
     
     try:
-        BeautifulSoup(open(firm_project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
+        soup = BeautifulSoup(open(firm_project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
     except FileNotFoundError as e:
         req = requests.get(firm_project_link)
         response = open(firm_project_link.replace('/','').replace('.','-') + '.html', 'wb')
         for chunk in req.iter_content(100000):
             response.write(chunk)
         response.close()
+        soup = BeautifulSoup(open(firm_project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
     
     project_link = []
     project_title = []
@@ -300,11 +303,11 @@ def firm_project_details(firm_project_link):
     image_url_list = []
     ProjectGalleryImagesTITLE = []
     ProjectGalleryImagesURL = []
-    soup = BeautifulSoup(open(firm_project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
+    
     try:
         for data in soup.find('div', {'id' : 'projectAll'}).findAll('div', {'class' : 'photo'}):
             image_title = data.find('a').attrs['title']
-            image_url = data.find('a').find('img').attrs['data-original']
+            image_url = 'http://ebuild.in' + data.find('a').attrs['href']
             image_title_list.append(image_title)
             image_url_list.append(image_url)
             #project_image[image_title] = image_url               ##Not needed after modifying the code
@@ -316,10 +319,17 @@ def firm_project_details(firm_project_link):
     except AttributeError as e:
         project_link.append('')
         project_title.append('')
+    
+    project_link_list.append(project_link)
+    project_title_list.append(project_title)
+    
         
     #firm_project_image_list.append(project_image)                ##Not needed after modifying the code
     firm_project_image_title_list.append(image_title_list)
     firm_project_image_url_list.append(image_url_list)
+    firm_project_image_url_list1.append(image_url_list)
+    
+    #print (firm_project_image_url_list1)
     
     for link in project_link:
         ProjectGalleryImagesTITLE.append(ProjectImageGallery(link)[0])
@@ -330,20 +340,21 @@ def firm_project_details(firm_project_link):
 def ProjectImageGallery(project_link):
     
     try:
-        BeautifulSoup(open(project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
+        soup = BeautifulSoup(open(project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
     except FileNotFoundError as e:
         req = requests.get(project_link)
         sample = open(project_link.replace('/','').replace('.','-') + '.html', 'wb')
         for chunk in req.iter_content(100000):
             sample.write(chunk)
         sample.close()
+        soup = BeautifulSoup(open(project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
     
     project_image_gallery = {}
     project_image_name = []
     project_image_url = []
     project_image_gallery_title = []
     project_image_gallery_url = []
-    soup = BeautifulSoup(open(project_link.replace('/','').replace('.','-') + '.html'), 'lxml')
+    
     try:
         for data in soup.find('div',{'class' : 'gal'}).findAll('div', {'class' : 'pin'}):
             project_image_name.append(data.find('img').attrs['alt'])
@@ -364,8 +375,18 @@ def ProjectImageGallery(project_link):
 for link in firm_link:
     firm_details(link)
 
+#firm_project_details('http://ebuild.in/42mm-projects')
+
 for link in firm_project_link:
     firm_project_details(link)
+
+connection = Connection()
+db = connection.hutstorytfod
+firmCollection = db.firms
+projectCollection = db.projects
+imageGalleryCollection = db.images
+
+
 
 ###Creating the Database
 connection = Connection()
@@ -394,13 +415,13 @@ for i in range(len(firm_link)):
     
     for j in range(len(firm_project_image_title_list[i])):
         insertProjectData = {"ProjectImageTitle" : firm_project_image_title_list[i][j],
-                      "ProjectImageURL" : firm_project_image_url_list[i][j],
+                      "ProjectImageURL" : firm_project_image_url_list1[i][j],
                       "firmId" : FIRMID}
         PROJECTID = projectCollection.insert_one(insertProjectData).inserted_id
         
     for j in range(len(Image_Gallery_TITLES_list[i])):
-        insertProjectLinkData = {"ProjectWithGalleryTitle" : Image_Gallery_TITLES_list[i][j],
-                                 "ProjectWithGalleryUrl" : Image_Gallery_URLS_list[i][j],
+        insertProjectLinkData = {"ProjectWithGalleryTitle" : project_title_list[i][j],
+                                 "ProjectWithGalleryUrl" : project_link_list[i][j],
                                  "firmId" : FIRMID}
         PROJECTLINKID = projectLinkCollection.insert_one(insertProjectLinkData).inserted_id
         
@@ -410,24 +431,6 @@ for i in range(len(firm_link)):
                           "projectLinkId" : PROJECTLINKID}
             IMAGEID = imageGalleryCollection.insert_one(insertImageData).inserted_id
 
-#Creating a DataFrame
-df=pd.DataFrame(company_name,columns=['Company Name'])
-df['Firm Name']=firm_name
-df['Firm Image']=firm_image_list
-df['Role Name'] = role_name
-df['Place'] = place
-df['Service Area'] = service_area
-df['Project Type'] = project_type
-df['Projects Listed'] = projects_listed
-df['Postal Address'] = Postal_Address
-df['Website Address'] = website_Address
-df['Mail Address'] = mail_Address
-df['Owner'] = owner
-df['Year Established'] = Year_Established
-df['Number of Employees'] = Employees
-df['Firm Link'] = firm_link
-df['Project Image Title'] = firm_project_image_title_list
-df['Project Image Url'] = firm_project_image_url_list
-df['Image Gallery of Project Titles'] = Image_Gallery_TITLES_list
-df['Image Gallery of Project Urls'] = Image_Gallery_URLS_list
-df.to_csv('output.csv',index=True,header=True)
+
+
+print ('1')
